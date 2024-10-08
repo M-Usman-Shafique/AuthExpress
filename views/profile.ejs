@@ -68,8 +68,8 @@
           <h1 class="text-xl font-bold"><%= post.title %></h1>
           <p class="text-sm"><%= post.description %></p>
         </div>
-        <div class="flex justify-between">
-          <a href="" class="text-green-500">Like</a>
+        <div class="flex justify-between text-sm">
+          <a href="/like/<%= post._id %>" class="text-green-500">Like</a>
           <a href="" class="text-yellow-400">Edit</a>
         </div>
       </div>

@@ -23,7 +23,6 @@ app.get("/profile", isLoggedIn, async (req, res) => {
   res.render("profile", { user });
 });
 
-
 app.post("/post/create", isLoggedIn, async (req, res) => {
   // Getting user to know who's going to create a post:
   let user = await User.findOne({ email: req.user.email });
@@ -51,21 +50,21 @@ app.post("/register", async (req, res) => {
     return res.send("User already registered");
   }
 
-    // Generate salt and hash the password
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
+  // Generate salt and hash the password
+  const salt = await bcrypt.genSalt(10);
+  const hash = await bcrypt.hash(password, salt);
 
-    // Create the user
-    let user = await User.create({
-      username,
-      email,
-      password: hash,
-    });
+  // Create the user
+  let user = await User.create({
+    username,
+    email,
+    password: hash,
+  });
 
-    // To set JWT as cookie to login the user after registration:
-    let token = jwt.sign({ email }, "shhhhhhhh");
-    res.cookie("token", token);
-    res.render("login");
+  // To set JWT as cookie to login the user after registration:
+  let token = jwt.sign({ email: user.email, userId: user._id }, "shhhhhhhh");
+  res.cookie("token", token);
+  res.redirect("/login");
 });
 
 app.get("/login", (req, res) => {
@@ -79,9 +78,12 @@ app.post("/login", async (req, res) => {
   bcrypt.compare(req.body.password, user.password, (err, result) => {
     if (result) {
       // Setting JWT as cookie to keep the user login:
-      let token = jwt.sign({ email: user.email }, "shhhhhhhh");
+      let token = jwt.sign(
+        { email: user.email, userId: user._id },
+        "shhhhhhhh"
+      );
       res.cookie("token", token);
-      res.render("profile", { user });
+      res.redirect("/profile");
     } else {
       res.send("Login failed. Try again...");
       res.redirect("/login");
