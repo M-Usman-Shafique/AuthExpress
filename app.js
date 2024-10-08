@@ -17,52 +17,55 @@ app.get("/", (req, res) => {
   res.render("register");
 });
 
-app.get("/profile", isLoggedIn, (req, res) => {
-  // console.log(req.user)
-  res.render("profile", {user: req.user}); // req.user is received from "isLoggedIn" middleware
+app.get("/profile", isLoggedIn, async (req, res) => {
+  // console.log(req.user) // req.user is received from "isLoggedIn" middleware
+  let user = await User.findOne({ email: req.user.email }).populate("posts");
+  res.render("profile", { user });
 });
 
-app.get("/post", isLoggedIn, (req, res) => {
-  res.render("post");
-});
 
-app.post("/post/create", async (req, res) => {
+app.post("/post/create", isLoggedIn, async (req, res) => {
+  // Getting user to know who's going to create a post:
+  let user = await User.findOne({ email: req.user.email });
+
   let { title, description, image } = req.body;
   let post = await Post.create({
+    userId: user._id, // To let the post know its creator
     title,
     description,
     image,
   });
-  res.redirect("/posts");
+
+  user.posts.push(post._id); // To save each post's id inside its creator
+  await user.save();
+  res.redirect("/profile");
 });
 
-app.get("/posts", isLoggedIn, async (req, res) => {
-  let posts = await Post.find();
-  res.render("posts", { posts });
-});
-
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   let { username, email, password } = req.body;
 
-  if (user) {
+  // Check if the user already exists
+  let existingUser = await User.findOne({ email });
+
+  if (existingUser) {
     return res.send("User already registered");
   }
 
-  bcrypt.genSalt(10, (err, salt) => {
-    bcrypt.hash(password, salt, async (err, hash) => {
-      let user = await User.create({
-        username,
-        email,
-        password: hash,
-      });
+    // Generate salt and hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
 
-      // To set JWT as cookie to login the user after register:
-      let token = jwt.sign({ email }, "shhhhhhhh");
-      res.cookie("token", token);
-      //   console.log(token);
-      res.render("login");
+    // Create the user
+    let user = await User.create({
+      username,
+      email,
+      password: hash,
     });
-  });
+
+    // To set JWT as cookie to login the user after registration:
+    let token = jwt.sign({ email }, "shhhhhhhh");
+    res.cookie("token", token);
+    res.render("login");
 });
 
 app.get("/login", (req, res) => {
@@ -87,15 +90,16 @@ app.post("/login", async (req, res) => {
 });
 
 // Logout the user by removing the JWT from cookie:
-app.post("/logout", (req, res) => {
+app.get("/logout", (req, res) => {
   res.cookie("token", "");
   res.redirect("/login");
 });
 
 // Middleware for protected routes:
 function isLoggedIn(req, res, next) {
-  if (req.cookies.token === "") {
-    res.send("Sorry, you are not authorized to access this.");
+  let token = req.cookies.token;
+  if (!token) {
+    res.send("Sorry, you are not authorized to access this page.");
   } else {
     let data = jwt.verify(req.cookies.token, "shhhhhhhh");
     req.user = data; // very important line;
