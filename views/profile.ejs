@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profile</title>
+  </head>
+  <body class="w-full min-h-screen bg-zinc-900 text-white p-8 flex gap-20 justify-center">
+    <div class="flex flex-col">
+      <h2 class="text-xl font-bold">Hi, <%= user.username%></h2>
+      <p class="text-gray-400"><%= user.email%></p>
+    </div>
+    <form action="/logout" method="post" class="">
+      <button type="submit" class="bg-red-600 text-white rounded px-2 py-1">Logout</button>
+    </form>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </body>
+</html>
