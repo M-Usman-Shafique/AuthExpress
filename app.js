@@ -6,6 +6,8 @@ const User = require("./models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const Post = require("./models/Post");
+const upload = require("./utils/multer");
+const fs = require("fs");
 
 app.set("view engine", "ejs");
 app.use(express.json());
@@ -14,13 +16,74 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
 
 app.get("/", (req, res) => {
+  let token = req.cookies.token;
+
+  if (token) {
+    jwt.verify(token, "shhhhhhhh");
+    return res.redirect("/profile");
+  }
   res.render("register");
+});
+
+app.get("/profile/avatar", isLoggedIn, (req, res) => {
+  res.render("avatar");
+});
+
+app.post("/upload", isLoggedIn, upload.single("image"), async (req, res) => {
+  let user = await User.findOne({ _id: req.user.userId });
+
+  if (req.file) {
+    user.avatar = req.file.filename;
+    await user.save();
+  }
+  res.redirect("/profile");
 });
 
 app.get("/profile", isLoggedIn, async (req, res) => {
   // console.log(req.user) // req.user is received from "isLoggedIn" middleware
   let user = await User.findOne({ email: req.user.email }).populate("posts");
+
+  // Check if the avatar exists on disk
+  const avatarPath = path.join(__dirname, "public", "uploads", user.avatar);
+
+  // If the file doesn't exist, set the avatar to default.png
+  if (!fs.existsSync(avatarPath)) {
+    user.avatar = "default.png";
+  }
   res.render("profile", { user });
+});
+
+app.get("/like/:id", isLoggedIn, async (req, res) => {
+  let post = await Post.findOne({ _id: req.params.id }).populate("user");
+
+  // console.log(req.user);
+  if (post.likes.indexOf(req.user.userId) === -1) {
+    post.likes.push(req.user.userId);
+  } else {
+    post.likes.splice(post.likes.indexOf(req.user.userId), 1);
+  }
+
+  await post.save();
+  res.redirect("/profile");
+});
+
+app.get("/edit/:id", isLoggedIn, async (req, res) => {
+  let post = await Post.findOne({ _id: req.params.id }).populate("user");
+
+  res.render("edit", { post });
+});
+
+app.post("/update/:id", isLoggedIn, async (req, res) => {
+  let post = await Post.findOneAndUpdate(
+    { _id: req.params.id },
+    {
+      title: req.body.title,
+      description: req.body.description,
+      image: req.body.image,
+    }
+  );
+
+  res.redirect("/profile");
 });
 
 app.post("/post/create", isLoggedIn, async (req, res) => {

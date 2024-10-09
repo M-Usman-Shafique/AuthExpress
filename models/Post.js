@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 mongoose.connect(
-  "mongodb+srv://usman:usman@cluster.wmnbp.mongodb.net/TestBase"
+  "mongodb+srv://usmantest:usmantest@clusterx.2v7zn.mongodb.net/TestBase"
 );
 
 const postSchema = mongoose.Schema(
