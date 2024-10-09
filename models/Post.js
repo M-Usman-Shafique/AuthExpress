@@ -1,13 +1,15 @@
-const mongoose = require("mongoose");
-
-mongoose.connect(
-  "mongodb+srv://usmantest:usmantest@clusterx.2v7zn.mongodb.net/TestBase"
-);
+import mongoose from "mongoose";
 
 const postSchema = mongoose.Schema(
   {
-    title: String,
-    description: String,
+    title: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
     image: String,
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,4 +25,4 @@ const postSchema = mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Post", postSchema);
+export const Post = mongoose.model("Post", postSchema);

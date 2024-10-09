@@ -1,29 +1,36 @@
-const express = require("express");
-const app = express();
-const cookieParser = require("cookie-parser");
-const path = require("path");
-const User = require("./models/User");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const Post = require("./models/Post");
-const upload = require("./utils/multer");
-const fs = require("fs");
+import express from "express";
+import User from "../models/User.js";
+import Post from "../models/Post.js";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import upload from "../utils/multer.js";
+import fs from "fs";
+import path from "path";
 
-app.set("view engine", "ejs");
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, "public")));
-app.use(cookieParser());
+const router = express.Router();
 
-app.get("/", (req, res) => {
+// Middleware for protected routes:
+function isLoggedIn(req, res, next) {
   let token = req.cookies.token;
-
-  if (token) {
-    jwt.verify(token, "shhhhhhhh");
-    return res.redirect("/profile");
+  if (!token) {
+    return res.send("Sorry, you are not authorized to access this page.");
   }
-  res.render("register");
-});
+  let data = jwt.verify(req.cookies.token, "shhhhhhhh");
+  req.user = data; // very important line;
+  // It passes the user's data to the protected routes so that if we want to use user's info. to show it on his profile page etc. we can do it, like for showing a Welcome <username> message.
+  next();
+}
+
+// Routes
+router.get("/", (req, res) => {
+    let token = req.cookies.token;
+  
+    if (token) {
+      jwt.verify(token, "shhhhhhhh");
+      return res.redirect("/profile");
+    }
+    res.render("register");
+  });
 
 app.get("/profile/avatar", isLoggedIn, (req, res) => {
   res.render("avatar");
@@ -39,7 +46,7 @@ app.post("/upload", isLoggedIn, upload.single("image"), async (req, res) => {
   res.redirect("/profile");
 });
 
-app.get("/profile", isLoggedIn, async (req, res) => {
+router.get("/profile", isLoggedIn, async (req, res) => {
   // console.log(req.user) // req.user is received from "isLoggedIn" middleware
   let user = await User.findOne({ email: req.user.email }).populate("posts");
 
@@ -53,7 +60,7 @@ app.get("/profile", isLoggedIn, async (req, res) => {
   res.render("profile", { user });
 });
 
-app.get("/like/:id", isLoggedIn, async (req, res) => {
+router.get("/like/:id", isLoggedIn, async (req, res) => {
   let post = await Post.findOne({ _id: req.params.id }).populate("user");
 
   // console.log(req.user);
@@ -67,13 +74,12 @@ app.get("/like/:id", isLoggedIn, async (req, res) => {
   res.redirect("/profile");
 });
 
-app.get("/edit/:id", isLoggedIn, async (req, res) => {
+router.get("/edit/:id", isLoggedIn, async (req, res) => {
   let post = await Post.findOne({ _id: req.params.id }).populate("user");
-
   res.render("edit", { post });
 });
 
-app.post("/update/:id", isLoggedIn, async (req, res) => {
+router.post("/update/:id", isLoggedIn, async (req, res) => {
   let post = await Post.findOneAndUpdate(
     { _id: req.params.id },
     {
@@ -86,7 +92,7 @@ app.post("/update/:id", isLoggedIn, async (req, res) => {
   res.redirect("/profile");
 });
 
-app.post("/post/create", isLoggedIn, async (req, res) => {
+router.post("/post/create", isLoggedIn, async (req, res) => {
   // Getting user to know who's going to create a post:
   let user = await User.findOne({ email: req.user.email });
 
@@ -103,7 +109,7 @@ app.post("/post/create", isLoggedIn, async (req, res) => {
   res.redirect("/profile");
 });
 
-app.post("/register", async (req, res) => {
+router.post("/register", async (req, res) => {
   let { username, email, password } = req.body;
 
   // Check if the user already exists
@@ -130,11 +136,11 @@ app.post("/register", async (req, res) => {
   res.redirect("/login");
 });
 
-app.get("/login", (req, res) => {
+router.get("/login", (req, res) => {
   res.render("login");
 });
 
-app.post("/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   let user = await User.findOne({ email: req.body.email });
   if (!user) res.send("Something went wrong");
 
@@ -155,22 +161,9 @@ app.post("/login", async (req, res) => {
 });
 
 // Logout the user by removing the JWT from cookie:
-app.get("/logout", (req, res) => {
+router.get("/logout", (req, res) => {
   res.cookie("token", "");
   res.redirect("/login");
 });
 
-// Middleware for protected routes:
-function isLoggedIn(req, res, next) {
-  let token = req.cookies.token;
-  if (!token) {
-    res.send("Sorry, you are not authorized to access this page.");
-  } else {
-    let data = jwt.verify(req.cookies.token, "shhhhhhhh");
-    req.user = data; // very important line;
-    // It passes the user's data to the protected routes so that if we want to use user's info. to show it on his profile page etc. we can do it, like for showing a Welcome <username> message.
-    next();
-  }
-}
-
-app.listen(3000);
+export default router;

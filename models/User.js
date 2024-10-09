@@ -1,12 +1,15 @@
-const mongoose = require("mongoose");
-
-mongoose.connect(
-  "mongodb+srv://usmantest:usmantest@clusterx.2v7zn.mongodb.net/TestBase"
-);
+import mongoose from "mongoose";
 
 const userSchema = mongoose.Schema({
-  username: String,
-  email: String,
+  username: {
+    type: String,
+    trim: true,
+    minLength: 3,
+  },
+  email: {
+    type: String,
+    trim: true,
+  },
   password: String,
   avatar: {
     type: String,
@@ -20,4 +23,4 @@ const userSchema = mongoose.Schema({
   ],
 });
 
-module.exports = mongoose.model("User", userSchema);
+export const User = mongoose.model("User", userSchema);
