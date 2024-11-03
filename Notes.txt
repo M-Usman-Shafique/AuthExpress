@@ -1,2 +1,0 @@
-// very important line;
-    // It passes the user's data to the protected routes so that if we want to use user's info. to show it on his profile page etc. we can do it, like for showing a Welcome <username> message.
